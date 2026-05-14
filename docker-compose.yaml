@@ -1,0 +1,11 @@
+services:
+  qoder2api:
+    image: brill00/qoder2api:0.1.2-toolcall-fallback
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - "8963:8963"
+    environment:
+      QODER_PAT: ${QODER_PAT:?QODER_PAT is required}
+      QODER_HOST: 0.0.0.0
+      QODER_PORT: 8963
