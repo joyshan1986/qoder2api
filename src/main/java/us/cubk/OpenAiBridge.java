@@ -24,10 +24,11 @@ public final class OpenAiBridge {
     private final BearerApiClient bearerClient;
     private final JsonNode templateBase;
 
-    private final String apiDomain;
+    private final String chatBase;
 
     public OpenAiBridge(String pat) throws Exception {
-        this.apiDomain = resolveApiDomain();
+        String centerBase = resolveCenterBase();
+        this.chatBase = resolveChatBase();
         String mid = UUID.randomUUID().toString();
         String mtoken = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString((UUID.randomUUID().toString() + UUID.randomUUID()).substring(0, 50).getBytes());
         String mtype = UUID.randomUUID().toString().replace("-", "").substring(0, 18);
@@ -36,16 +37,16 @@ public final class OpenAiBridge {
         if (oauthToken != null && !oauthToken.isBlank()) {
             String refreshToken = getSetting("QODER_REFRESH_TOKEN");
             if (refreshToken == null) refreshToken = "";
-            var sigClient = new SignatureApiClient(mid, mtoken, mtype, apiDomain);
-            System.out.println("[bridge] refreshing session via oauth token, domain=" + apiDomain);
+            var sigClient = new SignatureApiClient(mid, mtoken, mtype, centerBase);
+            System.out.println("[bridge] refreshing session via oauth token, center=" + centerBase);
             JsonNode jt = sigClient.refreshSession(oauthToken, refreshToken);
-            System.out.println("[bridge] session for " + jt.path("name").asText() + " (" + jt.path("id").asText() + ") domain=" + apiDomain);
+            System.out.println("[bridge] session for " + jt.path("name").asText() + " (" + jt.path("id").asText() + ") chat=" + chatBase);
             var identity = new BearerBuilder.AuthIdentity(jt.path("name").asText(""), jt.path("id").asText(""), jt.path("id").asText(""), "", "", "", jt.path("userType").asText("personal_professional"), jt.path("securityOauthToken").asText(), jt.path("refreshToken").asText());
             this.sess = BearerBuilder.newSession(identity, mid, mtoken, mtype);
         } else {
-            var sigClient = new SignatureApiClient(mid, mtoken, mtype, apiDomain);
+            var sigClient = new SignatureApiClient(mid, mtoken, mtype, centerBase);
             JsonNode jt = sigClient.exchangeJobToken(pat);
-            System.out.println("[bridge] session for " + jt.path("name").asText() + " (" + jt.path("id").asText() + ") domain=" + apiDomain);
+            System.out.println("[bridge] session for " + jt.path("name").asText() + " (" + jt.path("id").asText() + ") chat=" + chatBase);
             var identity = new BearerBuilder.AuthIdentity(jt.path("name").asText(""), jt.path("id").asText(""), jt.path("id").asText(""), "", "", "", jt.path("userType").asText("personal_standard"), jt.path("securityOauthToken").asText(), jt.path("refreshToken").asText());
             this.sess = BearerBuilder.newSession(identity, mid, mtoken, mtype);
         }
@@ -116,7 +117,7 @@ public final class OpenAiBridge {
                 System.out.println("[bridge] msg role=" + msg.path("role").asText() + " content=" + (content.length() > 40 ? content.substring(0, 40) + "..." : content) + " contents=" + (contentsStr.length() > 120 ? contentsStr.substring(0, 120) + "..." : contentsStr));
             }
 
-            String url = "https://api3." + apiDomain + "/algo/api/v2/service/pro/sse/agent_chat_generation" + "?FetchKeys=llm_model_result&AgentId=agent_common&Encode=1";
+            String url = chatBase + "/api/v2/service/pro/sse/agent_chat_generation" + "?FetchKeys=llm_model_result&AgentId=agent_common&Encode=1";
             Map<String, String> extraHeaders = Map.of("x-model-key", model, "x-model-source", mc.path("source").asText("system"));
 
             String reqId = "chatcmpl-" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
@@ -791,10 +792,20 @@ public final class OpenAiBridge {
         Thread.currentThread().join();
     }
 
-    private static String resolveApiDomain() {
+    private static String resolveCenterBase() {
+        String base = getSetting("QODER_CENTER_BASE");
+        if (base != null && !base.isBlank()) return base;
         String domain = getSetting("QODER_DOMAIN");
-        if (domain == null || domain.isBlank()) return "qoder.sh";
-        return domain;
+        if (domain != null && !domain.isBlank()) return "https://center." + domain + "/algo";
+        return "https://center.qoder.sh/algo";
+    }
+
+    private static String resolveChatBase() {
+        String base = getSetting("QODER_CHAT_BASE");
+        if (base != null && !base.isBlank()) return base;
+        String domain = getSetting("QODER_DOMAIN");
+        if (domain != null && !domain.isBlank()) return "https://api3." + domain + "/algo";
+        return "https://api3.qoder.sh/algo";
     }
 
     private static String getSetting(String key) {
