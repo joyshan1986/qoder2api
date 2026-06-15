@@ -17,11 +17,17 @@ public final class SignatureApiClient {
     private final String machineId;
     private final String machineToken;
     private final String machineType;
+    private final String domain;
 
     public SignatureApiClient(String machineId, String machineToken, String machineType) {
+        this(machineId, machineToken, machineType, "qoder.sh");
+    }
+
+    public SignatureApiClient(String machineId, String machineToken, String machineType, String domain) {
         this.machineId = machineId;
         this.machineToken = machineToken;
         this.machineType = machineType;
+        this.domain = domain;
     }
 
     public JsonNode exchangeJobToken(String personalToken) throws Exception {
@@ -34,7 +40,7 @@ public final class SignatureApiClient {
         var outer = objectMapper.createObjectNode();
         outer.put("payload", objectMapper.writeValueAsString(inner));
         outer.put("encodeVersion", "1");
-        return postEncoded("https://center.qoder.sh/algo/api/v3/user/jobToken?Encode=1", outer);
+        return postEncoded("https://center." + domain + "/algo/api/v3/user/jobToken?Encode=1", outer);
     }
 
     public JsonNode userStatus(String userId) throws Exception {
@@ -48,7 +54,7 @@ public final class SignatureApiClient {
         var outer = objectMapper.createObjectNode();
         outer.put("payload", objectMapper.writeValueAsString(inner));
         outer.put("encodeVersion", "1");
-        return postEncoded("https://center.qoder.sh/algo/api/v3/user/status?Encode=1", outer);
+        return postEncoded("https://center." + domain + "/algo/api/v3/user/status?Encode=1", outer);
     }
 
     public JsonNode heartbeat() throws Exception {
@@ -61,7 +67,7 @@ public final class SignatureApiClient {
         hb.put("ide_type", "qodercli");
         hb.put("ide_version", "0.1.43");
         hb.putObject("extra_info");
-        return postEncoded("https://center.qoder.sh/algo/api/v1/heartbeat?Encode=1", hb);
+        return postEncoded("https://center." + domain + "/algo/api/v1/heartbeat?Encode=1", hb);
     }
 
     private JsonNode postEncoded(String url, Object obj) throws Exception {
