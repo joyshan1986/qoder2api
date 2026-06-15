@@ -35,15 +35,12 @@ public final class OpenAiBridge {
         String oauthToken = getSetting("QODER_OAUTH_TOKEN");
         if (oauthToken != null && !oauthToken.isBlank()) {
             String refreshToken = getSetting("QODER_REFRESH_TOKEN");
-            String userId = getSetting("QODER_USER_ID");
-            String userName = getSetting("QODER_USER_NAME");
-            String userType = getSetting("QODER_USER_TYPE");
-            if (userId == null || userId.isBlank()) throw new RuntimeException("QODER_USER_ID is required when using QODER_OAUTH_TOKEN");
             if (refreshToken == null) refreshToken = "";
-            if (userName == null || userName.isBlank()) userName = "user";
-            if (userType == null || userType.isBlank()) userType = "personal_professional";
-            System.out.println("[bridge] direct session for " + userName + " (" + userId + ") domain=" + apiDomain);
-            var identity = new BearerBuilder.AuthIdentity(userName, userId, userId, "", "", "", userType, oauthToken, refreshToken);
+            var sigClient = new SignatureApiClient(mid, mtoken, mtype, apiDomain);
+            System.out.println("[bridge] refreshing session via oauth token, domain=" + apiDomain);
+            JsonNode jt = sigClient.refreshSession(oauthToken, refreshToken);
+            System.out.println("[bridge] session for " + jt.path("name").asText() + " (" + jt.path("id").asText() + ") domain=" + apiDomain);
+            var identity = new BearerBuilder.AuthIdentity(jt.path("name").asText(""), jt.path("id").asText(""), jt.path("id").asText(""), "", "", "", jt.path("userType").asText("personal_professional"), jt.path("securityOauthToken").asText(), jt.path("refreshToken").asText());
             this.sess = BearerBuilder.newSession(identity, mid, mtoken, mtype);
         } else {
             var sigClient = new SignatureApiClient(mid, mtoken, mtype, apiDomain);

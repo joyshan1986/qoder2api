@@ -43,6 +43,19 @@ public final class SignatureApiClient {
         return postEncoded("https://center." + domain + "/algo/api/v3/user/jobToken?Encode=1", outer);
     }
 
+    public JsonNode refreshSession(String oauthToken, String refreshToken) throws Exception {
+        var inner = objectMapper.createObjectNode();
+        inner.put("personalToken", "");
+        inner.put("securityOauthToken", oauthToken);
+        inner.put("refreshToken", refreshToken);
+        inner.put("needRefresh", true);
+        inner.putObject("authInfo");
+        var outer = objectMapper.createObjectNode();
+        outer.put("payload", objectMapper.writeValueAsString(inner));
+        outer.put("encodeVersion", "1");
+        return postEncoded("https://center." + domain + "/algo/api/v3/user/jobToken?Encode=1", outer);
+    }
+
     public JsonNode userStatus(String userId) throws Exception {
         var inner = objectMapper.createObjectNode();
         inner.put("userId", userId);
